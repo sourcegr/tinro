@@ -4,13 +4,26 @@ import {getAttr,getRouteMatch} from './lib';
 import {location} from './location';
 import MODES from './modes';
 
+const {subscribe:bc_subscribe, set:bc_set} = writable([]);
+let breadcrumb = [];
+
+function locationGo(href) {
+    breadcrumb.length = 0;
+    location.go(href);
+}
+
+export function setBC(name, path) {
+    if (name === null) return;
+    breadcrumb.push({name, path});
+    bc_set(breadcrumb);
+}
 export const router = routerStore();
 
 function routerStore(){
 
     const {subscribe} = writable(location.get(), set => {
         location.start(set);
-        let un = aClickListener(location.go)
+        let un = aClickListener(locationGo);
         return ()=>{
             location.stop();
             un();
@@ -19,9 +32,12 @@ function routerStore(){
 
     return {
         subscribe,
-        goto: href => location.go(href),
+        goto: href => locationGo(href),
         params: getParams, /* DEPRECATED */
         meta: getMeta,
+        breadcrumb: {
+            subscribe: bc_subscribe,
+        },
         useHashNavigation: s => location.mode(s ? MODES.HASH : MODES.HISTORY), /* DEPRECATED */
         mode: {
             hash: ()=>location.mode(MODES.HASH),
@@ -35,9 +51,9 @@ export function active(node){
     const href = getAttr(node,'href'),
           exact = getAttr(node,'exact',true),
           cl = getAttr(node,'active-class',true,'active');
-          
+
     return {destroy:router.subscribe(r => {
-        const match = getRouteMatch(href,r.path); 
+        const match = getRouteMatch(href,r.path);
         match && (match.exact && exact || !exact) ? node.classList.add(cl) : node.classList.remove(cl);
     })}
 }

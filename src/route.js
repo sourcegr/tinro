@@ -1,6 +1,6 @@
 import {getContext,setContext,onMount,tick} from 'svelte';
 import {writable} from 'svelte/store';
-import {router} from './router';
+import {router, setBC} from './router';
 import {err,formatPath,getRouteMatch,makeRedirectURL} from './lib';
 
 export function createRouteObject(options){
@@ -86,19 +86,20 @@ export function createRouteObject(options){
 
             if(
                 match
-                &&  !route.fallback  
-                &&  (!route.exact || (route.exact && match.exact)) 
+                &&  !route.fallback
+                &&  (!route.exact || (route.exact && match.exact))
                 &&  (!route.parent || !route.parent.firstmatch || !route.parent.matched)
             ){
                 options.onMeta(route.meta);
                 route.parent && (route.parent.matched = true);
+                setBC(route.breadcrumb, match.part);
                 route.show();
             }else{
                 route.hide();
             }
 
             await tick();
-       
+
             if(
                 match
                 &&  !route.fallback
@@ -132,6 +133,6 @@ export function createRouteObject(options){
         route.router.from = r.from;
         if(route.pattern !== null) route.match();
     });
-    
+
     return route;
 }
